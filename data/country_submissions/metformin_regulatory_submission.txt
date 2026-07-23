@@ -1,0 +1,9 @@
+Document Name: Metformin Country Regulatory Submission Record
+Document Type: Country Submission
+Product: Metformin Hydrochloride Tablets
+
+This document represents regulatory submission requirements associated with approved Metformin Hydrochloride Tablets product information.
+
+Major changes involving boxed warnings, contraindications, warnings and precautions, dosage recommendations, renal monitoring requirements, or other significant safety information may require regulatory assessment before implementation.
+
+The addition of new patient-monitoring requirements or significant changes to the risk information should be evaluated to determine whether a variation, notification, or updated submission is required in applicable countries.
