@@ -1,373 +1,401 @@
+
 import os
+import uuid
 import tempfile
 
 import streamlit as st
+from langgraph.types import Command
 
 from agent.graph import label_change_agent
 
 
-# ---------------------------------------------------------
-# Page Configuration
-# ---------------------------------------------------------
-
 st.set_page_config(
-    page_title="Label Change Impact Agent",
+    page_title="Pharmaceutical Label Change Impact Agent",
     page_icon="🔬",
     layout="wide"
 )
 
-
-# ---------------------------------------------------------
-# Header
-# ---------------------------------------------------------
-
-st.title("Label Change Impact Agent")
-
-st.markdown(
-    """
-    **Agentic AI for Pharmaceutical Regulatory Operations**
-
-    Upload an existing pharmaceutical product label and its updated
-    version. The AI agent analyzes the label change, searches downstream
-    content, assesses regulatory impact, and generates an actionable
-    **Change-Impact Task List**.
-    """
+st.title("🔬 Pharmaceutical Label Change Impact Agent")
+st.caption(
+    "Agentic AI for pharmaceutical label change detection, "
+    "downstream impact assessment, and actionable task generation."
 )
 
-st.divider()
+st.markdown("---")
 
 
-# ---------------------------------------------------------
-# Upload Section
-# ---------------------------------------------------------
+# --------------------------------------------------
+# SESSION STATE
+# --------------------------------------------------
 
-st.subheader("Upload Product Labels")
+if "result" not in st.session_state:
+    st.session_state.result = None
+
+if "graph_config" not in st.session_state:
+    st.session_state.graph_config = None
+
+if "analysis_started" not in st.session_state:
+    st.session_state.analysis_started = False
+
+
+# --------------------------------------------------
+# FILE UPLOAD
+# --------------------------------------------------
+
+st.header("1. Upload Pharmaceutical Labels")
 
 col1, col2 = st.columns(2)
 
 with col1:
-
-    old_label = st.file_uploader(
-        "Old Product Label",
+    old_file = st.file_uploader(
+        "Upload Old Label (PDF)",
         type=["pdf"],
         key="old_label"
     )
 
 with col2:
-
-    new_label = st.file_uploader(
-        "Updated Product Label",
+    new_file = st.file_uploader(
+        "Upload Updated Label (PDF)",
         type=["pdf"],
         key="new_label"
     )
 
 
-# ---------------------------------------------------------
-# Run Analysis
-# ---------------------------------------------------------
+# --------------------------------------------------
+# RUN AGENT
+# --------------------------------------------------
 
 if st.button(
-    "Run Impact Analysis",
+    "Run Label Change Impact Analysis",
     type="primary",
-    use_container_width=True
+    disabled=not (old_file and new_file)
 ):
 
-    if old_label is None or new_label is None:
+    temp_paths = []
 
-        st.error(
-            "Please upload both the old and updated product labels."
+    try:
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=".pdf"
+        ) as old_temp:
+            old_temp.write(old_file.getvalue())
+            old_path = old_temp.name
+            temp_paths.append(old_path)
+
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=".pdf"
+        ) as new_temp:
+            new_temp.write(new_file.getvalue())
+            new_path = new_temp.name
+            temp_paths.append(new_path)
+
+        thread_id = str(uuid.uuid4())
+
+        config = {
+            "configurable": {
+                "thread_id": thread_id
+            }
+        }
+
+        initial_state = {
+            "old_label_path": old_path,
+            "new_label_path": new_path,
+            "agent_steps": [],
+            "agent_decisions": [],
+            "retrieval_attempts": 0,
+            "max_retrieval_attempts": 2,
+            "assessment_attempts": 0
+        }
+
+        with st.spinner(
+            "Agent is analyzing the pharmaceutical labels..."
+        ):
+            result = label_change_agent.invoke(
+                initial_state,
+                config=config
+            )
+
+        st.session_state.result = result
+        st.session_state.graph_config = config
+        st.session_state.analysis_started = True
+
+        st.success("Analysis workflow executed.")
+
+    except Exception as e:
+        st.error(f"Workflow error: {str(e)}")
+
+    finally:
+        for path in temp_paths:
+            if os.path.exists(path):
+                os.remove(path)
+
+
+# --------------------------------------------------
+# DISPLAY RESULTS
+# --------------------------------------------------
+
+result = st.session_state.result
+
+if result:
+
+    st.markdown("---")
+    st.header("2. Agent Workflow Execution")
+
+    steps = result.get("agent_steps", [])
+
+    if steps:
+        for index, step in enumerate(steps, start=1):
+            st.write(f"**Step {index}:** {step}")
+    else:
+        st.info("No workflow steps recorded.")
+
+    st.markdown("---")
+    st.header("3. Agent Decisions")
+
+    decisions = result.get("agent_decisions", [])
+
+    if decisions:
+        for decision in decisions:
+            st.write(f"• {decision}")
+    else:
+        st.info("No agent decisions recorded.")
+
+    st.markdown("---")
+    st.header("4. Analysis Metrics")
+
+    metric1, metric2, metric3 = st.columns(3)
+
+    metric1.metric(
+        "Similarity",
+        f"{result.get('similarity_percentage', 0):.2f}%"
+    )
+
+    metric2.metric(
+        "Meaningful Change",
+        "Yes" if result.get(
+            "meaningful_change_detected", False
+        ) else "No"
+    )
+
+    metric3.metric(
+        "Assessment Valid",
+        "Yes" if result.get("assessment_valid") else "No"
+    )
+
+    st.markdown("---")
+    st.header("5. Detected Label Changes")
+
+    st.text(result.get(
+        "detected_changes",
+        "No detected changes available."
+    ))
+
+    st.markdown("---")
+    st.header("6. Retrieved Downstream Documents")
+
+    documents = result.get("retrieved_documents", [])
+
+    if documents:
+        for doc in documents:
+            with st.expander(
+                doc.get("document_name", "Retrieved document")
+            ):
+                st.write(
+                    "**Category:**",
+                    doc.get("category", "N/A")
+                )
+                st.write(
+                    "**Similarity Score:**",
+                    doc.get("similarity_score", "N/A")
+                )
+                st.write(
+                    doc.get("content", "")
+                )
+    else:
+        st.info("No downstream documents retrieved.")
+
+    st.markdown("---")
+    st.header("7. Impact Assessment")
+
+    st.text(result.get(
+        "impact_assessment",
+        "No impact assessment available."
+    ))
+
+    if result.get("assessment_feedback"):
+        st.info(result["assessment_feedback"])
+
+    st.markdown("---")
+    st.header("8. Generated Change-Impact Tasks")
+
+    task_list = result.get("task_list", "")
+
+    if task_list:
+        st.text(task_list)
+    else:
+        st.info("No tasks generated.")
+
+    if result.get("task_validation_feedback"):
+        st.caption(result["task_validation_feedback"])
+
+    if result.get("task_validation_passed"):
+        st.success("Task validation passed.")
+    elif task_list:
+        st.warning("Task validation requires attention.")
+
+    # --------------------------------------------------
+    # HUMAN APPROVAL
+    # --------------------------------------------------
+
+    st.markdown("---")
+    st.header("9. Human Review and Approval")
+
+    is_paused = bool(result.get("__interrupt__"))
+
+    if is_paused:
+
+        st.warning(
+            "The agent has paused execution and is waiting "
+            "for a human decision."
         )
+
+        st.write(
+            "Review the impact assessment and generated tasks "
+            "before making a decision."
+        )
+
+        approve_col, reject_col = st.columns(2)
+
+        with approve_col:
+            if st.button(
+                "Approve Tasks",
+                type="primary",
+                use_container_width=True
+            ):
+
+                try:
+                    with st.spinner(
+                        "Resuming workflow with human approval..."
+                    ):
+                        resumed_result = label_change_agent.invoke(
+                            Command(
+                                resume={"approved": True}
+                            ),
+                            config=st.session_state.graph_config
+                        )
+
+                    st.session_state.result = resumed_result
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"Approval error: {str(e)}")
+
+        with reject_col:
+            if st.button(
+                "Reject Tasks",
+                type="secondary",
+                use_container_width=True
+            ):
+
+                try:
+                    with st.spinner(
+                        "Resuming workflow with rejection..."
+                    ):
+                        resumed_result = label_change_agent.invoke(
+                            Command(
+                                resume={"approved": False}
+                            ),
+                            config=st.session_state.graph_config
+                        )
+
+                    st.session_state.result = resumed_result
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"Rejection error: {str(e)}")
 
     else:
 
-        old_temp_path = None
-        new_temp_path = None
+        approval = result.get("human_approved")
+        review_status = result.get(
+            "review_status",
+            "No human decision recorded"
+        )
 
-        try:
+        st.write("**Review status:**", review_status)
 
-            # ---------------------------------------------
-            # Save uploaded PDFs temporarily
-            # ---------------------------------------------
+        if approval is True:
+            st.success("Tasks approved by the human reviewer.")
 
-            with tempfile.NamedTemporaryFile(
-                delete=False,
-                suffix=".pdf"
-            ) as old_temp:
+        elif approval is False:
+            st.error("Tasks rejected by the human reviewer.")
 
-                old_temp.write(
-                    old_label.getvalue()
-                )
-
-                old_temp_path = old_temp.name
-
-
-            with tempfile.NamedTemporaryFile(
-                delete=False,
-                suffix=".pdf"
-            ) as new_temp:
-
-                new_temp.write(
-                    new_label.getvalue()
-                )
-
-                new_temp_path = new_temp.name
-
-
-            # ---------------------------------------------
-            # Run Complete LangGraph Agent
-            # ---------------------------------------------
-
-            with st.spinner(
-                "Agent is analyzing the label change. "
-                "This may take a few minutes..."
-            ):
-
-                initial_state = {
-
-                    "old_label_path":
-                        old_temp_path,
-
-                    "new_label_path":
-                        new_temp_path,
-
-                    "agent_steps":
-                        []
-                }
-
-                result = label_change_agent.invoke(
-                    initial_state
-                )
-
-
-            st.success(
-                "Label change impact analysis completed."
-            )
-
-
-            # ---------------------------------------------
-            # Agent Execution
-            # ---------------------------------------------
-
-            st.subheader(
-                "Agent Workflow"
-            )
-
-            for step in result.get(
-                "agent_steps",
-                []
-            ):
-
-                st.success(
-                    f"✓ {step}"
-                )
-
-
-            # ---------------------------------------------
-            # Summary Metrics
-            # ---------------------------------------------
-
-            st.subheader(
-                "Analysis Overview"
-            )
-
-            metric1, metric2 = st.columns(2)
-
-            with metric1:
-
-                st.metric(
-                    "Label Similarity",
-                    f"{result.get('similarity_percentage', 0)}%"
-                )
-
-            with metric2:
-
-                retrieved_documents = result.get(
-                    "retrieved_documents",
-                    []
-                )
-
-                st.metric(
-                    "Resources Retrieved",
-                    len(retrieved_documents)
-                )
-
-
-            # ---------------------------------------------
-            # Detected Changes
-            # ---------------------------------------------
-
-            st.subheader(
-                "Detected Label Changes"
-            )
-
-            with st.expander(
-                "View detected safety and regulatory changes",
-                expanded=True
-            ):
-
-                st.text(
-                    result.get(
-                        "detected_changes",
-                        "No changes available."
-                    )
-                )
-
-
-            # ---------------------------------------------
-            # Retrieved Resources
-            # ---------------------------------------------
-
-            st.subheader(
-                "Retrieved Downstream Resources"
-            )
-
-            retrieved_documents = result.get(
-                "retrieved_documents",
-                []
-            )
-
-            if retrieved_documents:
-
-                for document in retrieved_documents:
-
-                    with st.container(
-                        border=True
-                    ):
-
-                        st.markdown(
-                            f"**{document['name']}**"
-                        )
-
-                        st.write(
-                            f"Category: "
-                            f"{document['category']}"
-                        )
-
-                        st.write(
-                            "Semantic Similarity: "
-                            f"{document.get('similarity_score', 0):.4f}"
-                        )
-
-            else:
-
-                st.info(
-                    "No downstream resources were retrieved."
-                )
-
-
-            # ---------------------------------------------
-            # Impact Assessment
-            # ---------------------------------------------
-
-            st.subheader(
-                "Downstream Impact Assessment"
-            )
-
-            with st.expander(
-                "View detailed impact assessment",
-                expanded=True
-            ):
-
-                st.text(
-                    result.get(
-                        "impact_assessment",
-                        "No impact assessment available."
-                    )
-                )
-
-
-            # ---------------------------------------------
-            # Final Change-Impact Task List
-            # ---------------------------------------------
-
-            st.subheader(
-                "Change-Impact Task List"
-            )
-
+        elif result.get("task_list"):
             st.info(
-                "The following actionable tasks were generated "
-                "by the agent based on the detected label changes "
-                "and downstream impact assessment."
+                "No pending approval interrupt was returned. "
+                "Check the workflow status."
             )
 
-            st.text(
-                result.get(
-                    "task_list",
-                    "No tasks generated."
-                )
-            )
+    # --------------------------------------------------
+    # DOWNLOAD REPORT
+    # --------------------------------------------------
 
+    st.markdown("---")
+    st.header("10. Download Analysis Report")
 
-            # ---------------------------------------------
-            # Download Report
-            # ---------------------------------------------
+    report = f"""
+PHARMACEUTICAL LABEL CHANGE IMPACT ANALYSIS
+============================================
 
-            report = f"""
-LABEL CHANGE IMPACT REPORT
+DETECTED CHANGES
+----------------
+{result.get('detected_changes', '')}
 
-============================================================
-DETECTED LABEL CHANGES
-============================================================
+IMPACT ASSESSMENT
+-----------------
+{result.get('impact_assessment', '')}
 
-{result.get("detected_changes", "")}
+GENERATED TASKS
+---------------
+{result.get('task_list', '')}
 
+HUMAN REVIEW STATUS
+-------------------
+{result.get('review_status', 'Pending')}
 
-============================================================
-DOWNSTREAM IMPACT ASSESSMENT
-============================================================
+HUMAN APPROVAL
+--------------
+{result.get('human_approved', 'Pending')}
 
-{result.get("impact_assessment", "")}
+WORKFLOW STEPS
+--------------
+{chr(10).join(result.get('agent_steps', []))}
 
-
-============================================================
-CHANGE-IMPACT TASK LIST
-============================================================
-
-{result.get("task_list", "")}
+AGENT DECISIONS
+---------------
+{chr(10).join(result.get('agent_decisions', []))}
 """
 
-
-            st.download_button(
-                label="Download Impact Report",
-                data=report,
-                file_name="label_change_impact_report.txt",
-                mime="text/plain",
-                use_container_width=True
-            )
+    st.download_button(
+        label="Download Analysis Report",
+        data=report,
+        file_name="label_change_impact_report.txt",
+        mime="text/plain"
+    )
 
 
-        except Exception as error:
+else:
 
-            st.error(
-                f"Analysis failed: {error}"
-            )
-
-
-        finally:
-
-            # ---------------------------------------------
-            # Delete temporary uploaded files
-            # ---------------------------------------------
-
-            if (
-                old_temp_path
-                and os.path.exists(
-                    old_temp_path
-                )
-            ):
-
-                os.remove(
-                    old_temp_path
-                )
+    st.info(
+        "Upload the old and updated pharmaceutical label PDFs "
+        "to begin the analysis."
+    )
 
 
-            if (
-                new_temp_path
-                and os.path.exists(
-                    new_temp_path
-                )
-            ):
-
-                os.remove(
-                    new_temp_path
-                )
+st.markdown("---")
+st.caption(
+    "Research prototype. Generated assessments and tasks "
+    "require qualified human review. Synthetic test documents "
+    "must not be treated as approved regulatory or clinical material."
+)

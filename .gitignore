@@ -1,19 +1,28 @@
-# Virtual environment
+
+# Virtual environments
 venv/
 .venv/
+.venv_recovery/
+env/
 
 # Python cache
 __pycache__/
 *.py[cod]
+*.pyo
 
-# Environment variables
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
+*.pem
+*.key
 
 # Streamlit
 .streamlit/
 
 # IDE
 .vscode/
+.idea/
 
 # OS files
 .DS_Store
@@ -25,3 +34,12 @@ reports/*.pdf
 
 # Temporary files
 *.tmp
+*.log
+
+# Backup files
+*_backup.py
+*_before_agentic.py
+
+# Synthetic test documents
+old_metformin_label_synthetic.pdf
+updated_metformin_label_synthetic.pdf

@@ -1,3 +1,4 @@
+
 from langchain_ollama import ChatOllama
 
 
@@ -105,10 +106,10 @@ NO CHANGE-IMPACT TASKS REQUIRED
 
     result = response.content.strip()
 
-    # Remove unnecessary introductory text before the first task
+    # Remove introductory text while preserving the required task format
     if "TASK-001" in result:
         result = (
-            "TASK-001"
+            "TASK ID: TASK-001"
             + result.split("TASK-001", 1)[1]
         )
 
