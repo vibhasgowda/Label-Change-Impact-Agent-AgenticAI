@@ -1,0 +1,45 @@
+METFORMIN HYDROCHLORIDE TABLETS
+Version 1.0 — Synthetic Test Label
+SYNTHETIC TEST DATA — NOT AN APPROVED PRODUCT LABEL. Created solely to test document extraction and
+the software workflow. Do not use for prescribing, patient care, regulatory submissions, or clinical decisions.
+PRODUCT INFORMATION
+Product: Metformin Hydrochloride Tablets
+Document purpose: Synthetic software validation input
+Comparison scenario: Renal-function monitoring language
+BOXED WARNING
+Metformin-associated lactic acidosis is a serious but rare adverse reaction. Discontinue metformin if lactic
+acidosis is suspected. Risk may be increased in patients with renal impairment, hypoxic states, or
+conditions associated with tissue hypoperfusion.
+CONTRAINDICATIONS
+Metformin is contraindicated in patients with severe renal impairment and in patients with a known
+hypersensitivity to metformin.
+WARNINGS AND PRECAUTIONS
+Assess
+renal
+function
+before
+initiating
+treatment
+and
+periodically
+thereafter.
+Use
+caution
+in
+patients
+with
+conditions
+that
+may
+impair
+renal
+function.
+DOSAGE AND ADMINISTRATION
+The dosage should be individualized based on efficacy and tolerability. Follow the prescribing healthcare
+professional's instructions.
+ADVERSE REACTIONS
+Common adverse reactions include gastrointestinal symptoms such as diarrhea, nausea, vomiting,
+flatulence, and abdominal discomfort.
+DRUG INTERACTIONS
+Certain medicines and clinical conditions may affect renal function or metformin handling. Review
+concomitant medicines when clinically appropriate.

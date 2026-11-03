@@ -1,6 +1,8 @@
 ﻿import pytest
 import fitz
 
+from agent.nodes import detect_changes_node
+
 from tools.label_reader import read_document
 from tools.change_detector import (
     normalize_text,
@@ -184,3 +186,68 @@ def test_empty_impact_assessment():
     with pytest.raises(ValueError):
         generate_task_list("Some detected change", "")
 
+
+
+# --------------------------------------------------
+# SEMANTIC CHANGE CLASSIFICATION TESTS
+# --------------------------------------------------
+
+def test_formatting_only_change_is_not_meaningful(monkeypatch):
+    def mock_detect_changes(old_text, new_text):
+        return {
+            "changed_sections": [
+                {"section": "WARNINGS AND PRECAUTIONS"}
+            ],
+            "change_analysis": (
+                "SAFETY SIGNIFICANCE: NO CHANGE "
+                "(same wording, just formatting changes)\n"
+                "POTENTIAL DOWNSTREAM IMPACT: NO IMPACT"
+            ),
+            "similarity_percentage": 89.71
+        }
+
+    monkeypatch.setattr(
+        "agent.nodes.detect_changes",
+        mock_detect_changes
+    )
+
+    state = {
+        "old_label_text": "Original label",
+        "new_label_text": "Same wording, different formatting"
+    }
+
+    result = detect_changes_node(state)
+
+    assert result["meaningful_change_detected"] is False
+    assert result["changed_sections"] == [
+        {"section": "WARNINGS AND PRECAUTIONS"}
+    ]
+
+
+def test_meaningful_safety_change_is_detected(monkeypatch):
+    def mock_detect_changes(old_text, new_text):
+        return {
+            "changed_sections": [
+                {"section": "WARNINGS AND PRECAUTIONS"}
+            ],
+            "change_analysis": (
+                "SAFETY SIGNIFICANCE: MEANINGFUL CHANGE\n"
+                "POTENTIAL DOWNSTREAM IMPACT: "
+                "Update safety training."
+            ),
+            "similarity_percentage": 75.0
+        }
+
+    monkeypatch.setattr(
+        "agent.nodes.detect_changes",
+        mock_detect_changes
+    )
+
+    state = {
+        "old_label_text": "Old label",
+        "new_label_text": "Updated label"
+    }
+
+    result = detect_changes_node(state)
+
+    assert result["meaningful_change_detected"] is True

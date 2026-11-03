@@ -1,4 +1,4 @@
-from tools.label_reader import read_document
+﻿from tools.label_reader import read_document
 from tools.change_detector import detect_changes
 from tools.impact_assessment import assess_impact
 from tools.task_generator import generate_task_list
@@ -46,19 +46,33 @@ def detect_changes_node(state):
     regulatory or safety changes.
     """
 
+    import re
+
     result = detect_changes(
         state["old_label_text"],
         state["new_label_text"]
     )
 
     changed_sections = result.get("changed_sections", [])
-
     change_analysis = result.get("change_analysis", "")
+
+    significance_match = re.search(
+        r"SAFETY SIGNIFICANCE\s*:\s*([^\n]+)",
+        change_analysis,
+        re.IGNORECASE
+    )
+
+    safety_significance = (
+        significance_match.group(1).strip().upper()
+        if significance_match
+        else ""
+    )
 
     meaningful_change = (
         bool(changed_sections)
-        and "NO MEANINGFUL SAFETY CHANGES DETECTED"
-        not in change_analysis.upper()
+        and bool(safety_significance)
+        and not safety_significance.startswith("NO CHANGE")
+        and not safety_significance.startswith("NOT MEANINGFUL")
     )
 
     steps = state.get("agent_steps", []).copy()
@@ -85,6 +99,8 @@ def detect_changes_node(state):
         "agent_steps": steps,
         "agent_decisions": decisions
     }
+
+
 
 
 

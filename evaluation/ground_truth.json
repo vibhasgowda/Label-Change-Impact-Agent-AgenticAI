@@ -1,0 +1,63 @@
+
+{
+  "dataset_name": "Synthetic Pharmaceutical Label Change Evaluation Dataset",
+  "dataset_version": "1.0",
+  "data_type": "Synthetic test data only",
+  "disclaimer": "These examples are created exclusively for software evaluation. They are not approved pharmaceutical labels and must not be used for clinical or regulatory decisions.",
+  "evaluation_pairs": [
+    {
+      "pair_id": "PAIR-001",
+      "product": "Metformin Hydrochloride Tablets",
+      "old_label": "old_metformin_label_synthetic.pdf",
+      "new_label": "updated_metformin_label_synthetic.pdf",
+      "ground_truth": {
+        "changed_sections": [
+          {
+            "section": "WARNINGS AND PRECAUTIONS",
+            "change_type": "Modified",
+            "meaningful_change": true,
+            "expected_reason": "Introduces more specific renal-function monitoring, reassessment, documentation, and communication requirements."
+          }
+        ],
+        "unchanged_sections": [
+          "BOXED WARNING",
+          "CONTRAINDICATIONS",
+          "DOSAGE AND ADMINISTRATION",
+          "ADVERSE REACTIONS",
+          "DRUG INTERACTIONS"
+        ],
+        "overall_meaningful_change": true,
+        "expected_downstream_resources_for_review": [
+          "metformin_safety_training",
+          "metformin_regulatory_submission"
+        ],
+        "expected_resource_categories": [
+          "Training Material",
+          "Country Submission"
+        ],
+        "evaluation_status": "Manually labelled; requires independent verification before final reporting."
+      }
+    },
+    {
+      "pair_id": "PAIR-002",
+      "product": "Metformin Hydrochloride Tablets",
+      "old_label": "old_metformin_label_synthetic.pdf",
+      "new_label": "evaluation/unchanged_label_test.pdf",
+      "ground_truth": {
+        "changed_sections": [],
+        "unchanged_sections": [
+          "BOXED WARNING",
+          "CONTRAINDICATIONS",
+          "WARNINGS AND PRECAUTIONS",
+          "DOSAGE AND ADMINISTRATION",
+          "ADVERSE REACTIONS",
+          "DRUG INTERACTIONS"
+        ],
+        "overall_meaningful_change": false,
+        "expected_downstream_resources_for_review": [],
+        "expected_resource_categories": [],
+        "evaluation_status": "Identical synthetic labels; manually verified no-change case."
+      }
+    }
+  ]
+}
